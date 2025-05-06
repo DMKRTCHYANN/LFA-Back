@@ -34,7 +34,7 @@ class LanguageController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:10',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $data = $request->only(['name', 'code']);
@@ -51,15 +51,12 @@ class LanguageController extends Controller
 
     public function update(Request $request, $id)
     {
-        Log::info('Update request received:', $request->all());
-
-        try {
             $language = Language::findOrFail($id);
 
             $request->validate([
-                'name' => 'sometimes|string|max:255',
-                'code' => 'sometimes|string|max:10',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'name' => 'required|string|max:255',
+                'code' => 'required|string|max:10',
+                'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
             $data = $request->only(['name', 'code']);
@@ -74,13 +71,7 @@ class LanguageController extends Controller
                 'error' => false,
                 'data' => $language
             ]);
-        } catch (\Exception $e) {
-            Log::error('Error updating language: ' . $e->getMessage());
-            return response()->json([
-                'error' => true,
-                'message' => 'Failed to update language'
-            ], 500);
-        }
+
     }
 
     public function destroy($id)
