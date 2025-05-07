@@ -2,29 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Country;
+use App\Models\Tag;
 use Illuminate\Http\Request;
-use function Laravel\Prompts\error;
 
-class CountryController extends Controller
+class TagController extends Controller
 {
     public function index()
     {
-        $countries = Country::all();
+        $tag = Tag::all();
 
         return response()->json([
             'error' => false,
-            'data' => $countries
+            'data' => $tag
         ]);
     }
 
     public function show($id)
     {
-        $country = Country::findOrFail($id);
+        $tag = Tag::findOrFail($id);
 
         return response()->json([
             'error' => false,
-            'data' => $country
+            'data' => $tag
         ]);
     }
 
@@ -35,11 +34,11 @@ class CountryController extends Controller
             'name.*' => 'required|string|max:255',
         ]);
 
-        $country = Country::create($validated);
+        $tag = Tag::create($validated);
 
         return response()->json([
             'error' => false,
-            'message' => 'Country created successfully!',
+            'message' => 'Tag created successfully!',
         ], 201);
     }
 
@@ -50,23 +49,23 @@ class CountryController extends Controller
             'name.*' => 'required|string|max:255',
         ]);
 
-        $country = Country::findOrFail($id);
-        $country->update($validated);
+        $tag = Tag::findOrFail($id);
+        $tag->update($validated);
 
         return response()->json([
             'error' => false,
-            'message' => 'Country updated successfully!',
+            'message' => 'Tag updated successfully!',
         ], 200);
     }
 
     public function destroy($id)
     {
-        $country = Country::findOrFail($id);
-        $country->delete();
+        $tag = Tag::findOrFail($id);
+        $tag->delete();
 
         return response()->json([
             'error' => false,
-            'message' => 'Country deleted successfully',
+            'message' => 'Tag deleted successfully',
         ]);
     }
 }

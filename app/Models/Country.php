@@ -16,5 +16,4 @@ class Country extends Model
     ];
 
     public $translatable = ['name'];
-
 }

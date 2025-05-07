@@ -2,29 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Country;
+use App\Models\Topic;
 use Illuminate\Http\Request;
-use function Laravel\Prompts\error;
 
-class CountryController extends Controller
+class TopicController extends Controller
 {
     public function index()
     {
-        $countries = Country::all();
+        $topic = Topic::all();
 
         return response()->json([
             'error' => false,
-            'data' => $countries
+            'data' => $topic
         ]);
     }
 
     public function show($id)
     {
-        $country = Country::findOrFail($id);
+        $topic = Topic::findOrFail($id);
 
         return response()->json([
             'error' => false,
-            'data' => $country
+            'data' => $topic
         ]);
     }
 
@@ -35,11 +34,11 @@ class CountryController extends Controller
             'name.*' => 'required|string|max:255',
         ]);
 
-        $country = Country::create($validated);
+        $topic = Topic::create($validated);
 
         return response()->json([
             'error' => false,
-            'message' => 'Country created successfully!',
+            'message' => 'Topic created successfully!',
         ], 201);
     }
 
@@ -50,23 +49,23 @@ class CountryController extends Controller
             'name.*' => 'required|string|max:255',
         ]);
 
-        $country = Country::findOrFail($id);
-        $country->update($validated);
+        $topic = Topic::findOrFail($id);
+        $topic->update($validated);
 
         return response()->json([
             'error' => false,
-            'message' => 'Country updated successfully!',
+            'message' => 'Topic updated successfully!',
         ], 200);
     }
 
     public function destroy($id)
     {
-        $country = Country::findOrFail($id);
-        $country->delete();
+        $topic = Topic::findOrFail($id);
+        $topic->delete();
 
         return response()->json([
             'error' => false,
-            'message' => 'Country deleted successfully',
+            'message' => 'Topic deleted successfully',
         ]);
     }
 }

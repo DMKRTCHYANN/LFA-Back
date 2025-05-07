@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Translatable\HasTranslations;
 
 class Material extends Model
 {
+    use HasFactory, HasTranslations;
+
     protected $fillable = [
         'language_id',
         'topic_id',
@@ -25,14 +29,8 @@ class Material extends Model
         'author_url',
     ];
 
-    protected $casts = [
-        'title' => 'array',
-        'author' => 'array',
-        'short_description' => 'array',
-        'source' => 'array',
-        'full_text' => 'array',
-        'location' => 'array',
-    ];
+    public $translatable = ['title','author','short_description','tags','full_text','source',];
+
 
     public function language()
     {
