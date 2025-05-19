@@ -28,7 +28,7 @@ return new class extends Migration
             $table->enum('medium', array_column(Medium::cases(), 'value'))->default(Medium::Paper->value);
             $table->json('full_text')->nullable();
             $table->text('book_url');
-            $table->string('video_player');
+            $table->string('video');
             $table->text('source_url');
             $table->json('source');
             $table->text('author_url');

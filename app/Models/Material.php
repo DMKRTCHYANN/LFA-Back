@@ -4,11 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use MatanYadaev\EloquentSpatial\Objects\Point;
+use MatanYadaev\EloquentSpatial\Traits\HasSpatial;
 use Spatie\Translatable\HasTranslations;
 
 class Material extends Model
 {
     use HasFactory, HasTranslations;
+    use HasSpatial;
+
 
     protected $fillable = [
         'language_id',
@@ -22,11 +26,17 @@ class Material extends Model
         'end_year',
         'medium',
         'full_text',
+        'location',
         'book_url',
-        'video_player',
+        'video',
         'source_url',
         'source',
         'author_url',
+    ];
+
+
+    protected $casts = [
+        'location' => Point::class,
     ];
 
     public $translatable = ['title','author','short_description','tags','full_text','source',];
