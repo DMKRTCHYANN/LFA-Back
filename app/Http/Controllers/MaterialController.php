@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Language;
 use App\Models\Material;
 use App\Enums\Medium;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Enum;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
 class MaterialController extends Controller
@@ -31,47 +33,76 @@ class MaterialController extends Controller
         return response()->json($material, 200);
     }
 
-
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $languageCodes = Language::pluck('code')->toArray();
+
+        $rules = [
             'language_id' => 'required|exists:languages,id',
             'topic_id' => 'required|exists:topics,id',
             'country_id' => 'required|exists:countries,id',
             'poster' => 'nullable|string',
             'title' => 'required|array',
-            'title.*' => 'required|string|max:255',
             'author' => 'required|array',
-            'author.*' => 'required|string|max:255',
             'short_description' => 'required|array',
-            'short_description.*' => 'required|string|max:255',
-            'start_year' => 'required|integer',
-            'end_year' => 'required|integer',
+            'full_text' => 'required|array',
+            'source' => 'required|array',
+            'start_year' => 'required|numeric',
+            'end_year' => 'required|numeric',
+            'medium' => [Rule::enum(Medium::class)],
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-            'medium' => [Rule::enum(Medium::class)],
-            'full_text' => 'required|array',
-            'full_text.*' => 'required|string|max:255',
-            'book_url' => [
-                'required',
-                'regex:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i',
-            ],
-            'video' => 'required|string',
-            'source_url' => [
-                'required',
-                'regex:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i',
-            ],
-            'source' => 'required|array',
-            'source.*' => 'required|string|max:255',
-            'author_url' => [
-                'required',
-                'regex:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i',
-            ],
+            'book_url' => 'required|url',
+            'video' => 'required|url',
+            'source_url' => 'required|url',
+            'author_url' => 'required|url',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+        ];
+
+        foreach ($languageCodes as $code) {
+            $rules["title.$code"] = 'nullable|string|max:255';
+            $rules["author.$code"] = 'nullable|string|max:255';
+            $rules["short_description.$code"] = 'nullable|string|max:255';
+            $rules["full_text.$code"] = 'nullable|string|max:255';
+            $rules["source.$code"] = 'nullable|string|max:255';
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
+            'title.*' => 'The title for :attribute is required.',
+            'author.*' => 'The author for :attribute is required.',
+            'short_description.*' => 'The short description for :attribute is required.',
+            'full_text.*' => 'The full text for :attribute is required.',
+            'source.*' => 'The source for :attribute is required.',
         ]);
 
-        $validated['location'] = new Point($validated['latitude'], $validated['longitude']);
+        $validator->after(function ($validator) use ($languageCodes, $request) {
+            $hasValidLanguage = false;
+            foreach ($languageCodes as $code) {
+                if (
+                    $request->input("title.$code") &&
+                    $request->input("author.$code") &&
+                    $request->input("short_description.$code") &&
+                    $request->input("full_text.$code") &&
+                    $request->input("source.$code")
+                ) {
+                    $hasValidLanguage = true;
+                    break;
+                }
+            }
+            if (!$hasValidLanguage) {
+                $validator->errors()->add(
+                    'language_fields',
+                    'At least one language must have all fields (title, author, short description, full text, source) filled.'
+                );
+            }
+        });
+
+        $validated = $validator->validate();
+
+        if ($request->filled(['latitude', 'longitude'])) {
+            $validated['location'] = new Point($validated['latitude'], $validated['longitude']);
+        }
 
         $material = Material::create($validated);
 
@@ -86,63 +117,213 @@ class MaterialController extends Controller
     }
 
 
+//    public function store(Request $request)
+//    {
+//        $validated = $request->validate([
+//            'language_id' => 'required|exists:languages,id',
+//            'topic_id' => 'required|exists:topics,id',
+//            'country_id' => 'required|exists:countries,id',
+//            'poster' => 'nullable|string',
+//            'title' => 'required|array',
+//            'title.*' => 'required|string|max:255',
+//            'author' => 'required|array',
+//            'author.*' => 'required|string|max:255',
+//            'short_description' => 'required|array',
+//            'short_description.*' => 'required|string|max:255',
+//            'start_year' => 'required|numeric',
+//            'end_year' => 'required|numeric',
+//            'location' => 'required',
+//            'tags' => 'nullable|array',
+//            'tags.*' => 'exists:tags,id',
+//            'latitude' => 'nullable|numeric',
+//            'longitude' => 'nullable|numeric',
+//            'medium' => [Rule::enum(Medium::class)],
+//            'full_text' => 'required|array',
+//            'full_text.*' => 'required|string|max:255',
+//            'book_url' => 'required|url',
+//            'video' => 'required|url',
+//            'source_url' => 'required|url',
+//            'source' => 'required|array',
+//            'source.*' => 'required|string|max:255',
+//            'author_url' => 'required|url',
+//        ]);
+//
+//        if ($request->filled(['latitude', 'longitude'])) {
+//            $validated['location'] = new Point($validated['latitude'], $validated['longitude']);
+//        }
+//
+//        $material = Material::create($validated);
+//
+//        if ($request->has('tags')) {
+//            $material->tags()->sync($validated['tags']);
+//        }
+//
+//        return response()->json([
+//            'data' => $material->load(['language', 'topic', 'country', 'tags']),
+//            'message' => 'Material created successfully.',
+//        ], 201);
+//    }
+
+
+
+//    public function update(Request $request, $id)
+//    {
+//        $material = Material::find($id);
+//        if (!$material) {
+//            return response()->json(['message' => 'Material not found'], 404);
+//        }
+//
+//        $validated = $request->validate([
+//            'language_id' => 'required|exists:languages,id',
+//            'topic_id' => 'required|exists:topics,id',
+//            'country_id' => 'required|exists:countries,id',
+//            'poster' => 'nullable|string',
+//            'title' => 'required|array',
+//            'title.*' => 'required|string|max:255',
+//            'author' => 'required|array',
+//            'author.*' => 'required|string|max:255',
+//            'short_description' => 'required|array',
+//            'short_description.*' => 'required|string|max:255',
+//            'start_year' => 'required|numeric',
+//            'end_year' => 'required|numeric',
+//            'tags' => 'nullable|array',
+//            'tags.*' => 'nullable',
+//            'latitude' => 'nullable|numeric',
+//            'longitude' => 'nullable|numeric',
+//            'medium' => [Rule::enum(Medium::class)],
+//            'full_text' => 'required|array',
+//            'full_text.*' => 'required|string|max:255',
+//            'book_url' => 'required|url',
+//            'video' => 'required|url',
+//            'source_url' => 'required|url',
+//            'source' => 'required|array',
+//            'source.*' => 'required|string|max:255',
+//            'author_url' => 'required|url',
+//        ]);
+//
+//        if ($request->has('tags')) {
+//            $material->tags()->sync($validated['tags']);
+//        }
+//        if ($request->has('location')) {
+//            $location = $request->input('location');
+//
+//            if (isset($location['coordinates'])) {
+//                $material->location = new Point($location['coordinates'][1], $location['coordinates'][0]);
+//                $material->save();
+//            }
+//        }
+//
+//
+//        $material->update($validated);
+//
+//        return response()->json($material->load(['language', 'topic', 'country', 'tags']), 200);
+//    }
+
+
+
+
     public function update(Request $request, $id)
     {
+        // Find the material
         $material = Material::find($id);
-
         if (!$material) {
-            return response()->json(['message' => 'Material not found'], 404);
+            return response()->json(['errors' => ['material' => ['Material not found']]], 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'language_id' => 'sometimes|exists:languages,id',
-            'topic_id' => 'sometimes|exists:topics,id',
-            'country_id' => 'sometimes|exists:countries,id',
+        // Fetch available language codes
+        $languageCodes = Language::pluck('code')->toArray();
+
+        // Define validation rules
+        $rules = [
+            'language_id' => 'required|exists:languages,id',
+            'topic_id' => 'required|exists:topics,id',
+            'country_id' => 'required|exists:countries,id',
             'poster' => 'nullable|string',
-            'title' => 'nullable|json',
-            'author' => 'nullable|json',
-            'short_description' => 'nullable|json',
-            'start_year' => 'sometimes|integer',
-            'end_year' => 'sometimes|integer',
+            'title' => 'required|array',
+            'author' => 'required|array',
+            'short_description' => 'required|array',
+            'full_text' => 'required|array',
+            'source' => 'required|array',
+            'start_year' => 'required|numeric',
+            'end_year' => 'required|numeric',
+            'medium' => ['required', Rule::enum(Medium::class)],
             'tags' => 'nullable|array',
             'tags.*' => 'exists:tags,id',
-            'latitude' => 'sometimes|required_with:longitude|numeric',
-            'longitude' => 'sometimes|required_with:latitude|numeric',
-            'medium' => [Rule::enum(Medium::class)],
-            'full_text' => 'nullable|json',
-            'book_url' => [
-                'required',
-                'regex:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i',
-            ],
-            'video' => 'sometimes|string',
-            'source_url' => [
-                'required',
-                'regex:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i',
-            ],
-            'source' => 'sometimes|json',
-            'author_url' => [
-                'required',
-                'regex:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i',
-            ],
+            'book_url' => 'required|url',
+            'video' => 'required|url',
+            'source_url' => 'required|url',
+            'author_url' => 'required|url',
+            'location' => 'required|array',
+            'location.type' => 'required|string|in:Point',
+            'location.coordinates' => 'required|array|size:2',
+            'location.coordinates.0' => 'required|numeric|between:-90,90', // Latitude
+            'location.coordinates.1' => 'required|numeric|between:-180,180', // Longitude
+        ];
+
+        // Add validation rules for language-specific fields
+        foreach ($languageCodes as $code) {
+            $rules["title.$code"] = 'nullable|string|max:255';
+            $rules["author.$code"] = 'nullable|string|max:255';
+            $rules["short_description.$code"] = 'nullable|string|max:255';
+            $rules["full_text.$code"] = 'nullable|string|max:255';
+            $rules["source.$code"] = 'nullable|string|max:255';
+        }
+
+        // Custom validation to ensure at least one language has all fields
+        $validator = Validator::make($request->all(), $rules, [
+            'title.*' => 'The title for :attribute is required.',
+            'author.*' => 'The author for :attribute is required.',
+            'short_description.*' => 'The short description for :attribute is required.',
+            'full_text.*' => 'The full text for :attribute is required.',
+            'source.*' => 'The source for :attribute is required.',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        // Check if at least one language has all required fields
+        $validator->after(function ($validator) use ($languageCodes, $request) {
+            $hasValidLanguage = false;
+            foreach ($languageCodes as $code) {
+                if (
+                    $request->input("title.$code") &&
+                    $request->input("author.$code") &&
+                    $request->input("short_description.$code") &&
+                    $request->input("full_text.$code") &&
+                    $request->input("source.$code")
+                ) {
+                    $hasValidLanguage = true;
+                    break;
+                }
+            }
+            if (!$hasValidLanguage) {
+                $validator->errors()->add(
+                    'language_fields',
+                    'At least one language must have all fields (title, author, short description, full text, source) filled.'
+                );
+            }
+        });
 
-        $material->update($request->except(['tags', 'latitude', 'longitude']));
+        // Validate the request
+        $validated = $validator->validate();
 
+        // Update location
+        $validated['location'] = new Point(
+            $validated['location']['coordinates'][0], // Latitude
+            $validated['location']['coordinates'][1]  // Longitude
+        );
+
+        // Update the material
+        $material->update($validated);
+
+        // Sync tags if provided
         if ($request->has('tags')) {
-            $material->tags()->sync($request->input('tags', []));
+            $material->tags()->sync($validated['tags']);
         }
 
-        if ($request->filled(['latitude', 'longitude'])) {
-            $material->location = new Point($request->input('latitude'), $request->input('longitude'));
-            $material->save();
-        }
-
-        return response()->json($material->load(['language', 'topic', 'country', 'tags']), 200);
+        return response()->json([
+            'data' => $material->load(['language', 'topic', 'country', 'tags']),
+            'message' => 'Material updated successfully.',
+        ], 200);
     }
+
 
     public function destroy($id)
     {
