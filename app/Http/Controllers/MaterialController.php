@@ -56,8 +56,11 @@ class MaterialController extends Controller
             'video' => 'required|url',
             'source_url' => 'required|url',
             'author_url' => 'required|url',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
+            'location' => 'required|array',
+            'location.type' => 'required|string|in:Point',
+            'location.coordinates' => 'required|array|size:2',
+            'location.coordinates.0' => 'required|numeric|between:-90,90',
+            'location.coordinates.1' => 'required|numeric|between:-180,180',
         ];
 
         foreach ($languageCodes as $code) {
@@ -68,13 +71,7 @@ class MaterialController extends Controller
             $rules["source.$code"] = 'nullable|string|max:255';
         }
 
-        $validator = Validator::make($request->all(), $rules, [
-            'title.*' => 'The title for :attribute is required.',
-            'author.*' => 'The author for :attribute is required.',
-            'short_description.*' => 'The short description for :attribute is required.',
-            'full_text.*' => 'The full text for :attribute is required.',
-            'source.*' => 'The source for :attribute is required.',
-        ]);
+        $validator = Validator::make($request->all(), $rules);
 
         $validator->after(function ($validator) use ($languageCodes, $request) {
             $hasValidLanguage = false;
@@ -100,9 +97,10 @@ class MaterialController extends Controller
 
         $validated = $validator->validate();
 
-        if ($request->filled(['latitude', 'longitude'])) {
-            $validated['location'] = new Point($validated['latitude'], $validated['longitude']);
-        }
+        $validated['location'] = new Point(
+            $validated['location']['coordinates'][0],
+            $validated['location']['coordinates'][1]
+        );
 
         $material = Material::create($validated);
 
@@ -224,16 +222,13 @@ class MaterialController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Find the material
         $material = Material::find($id);
         if (!$material) {
             return response()->json(['errors' => ['material' => ['Material not found']]], 404);
         }
 
-        // Fetch available language codes
         $languageCodes = Language::pluck('code')->toArray();
 
-        // Define validation rules
         $rules = [
             'language_id' => 'required|exists:languages,id',
             'topic_id' => 'required|exists:topics,id',
@@ -256,11 +251,10 @@ class MaterialController extends Controller
             'location' => 'required|array',
             'location.type' => 'required|string|in:Point',
             'location.coordinates' => 'required|array|size:2',
-            'location.coordinates.0' => 'required|numeric|between:-90,90', // Latitude
-            'location.coordinates.1' => 'required|numeric|between:-180,180', // Longitude
+            'location.coordinates.0' => 'required|numeric|between:-90,90',
+            'location.coordinates.1' => 'required|numeric|between:-180,180',
         ];
 
-        // Add validation rules for language-specific fields
         foreach ($languageCodes as $code) {
             $rules["title.$code"] = 'nullable|string|max:255';
             $rules["author.$code"] = 'nullable|string|max:255';
@@ -269,7 +263,6 @@ class MaterialController extends Controller
             $rules["source.$code"] = 'nullable|string|max:255';
         }
 
-        // Custom validation to ensure at least one language has all fields
         $validator = Validator::make($request->all(), $rules, [
             'title.*' => 'The title for :attribute is required.',
             'author.*' => 'The author for :attribute is required.',
@@ -278,7 +271,6 @@ class MaterialController extends Controller
             'source.*' => 'The source for :attribute is required.',
         ]);
 
-        // Check if at least one language has all required fields
         $validator->after(function ($validator) use ($languageCodes, $request) {
             $hasValidLanguage = false;
             foreach ($languageCodes as $code) {
@@ -301,19 +293,15 @@ class MaterialController extends Controller
             }
         });
 
-        // Validate the request
         $validated = $validator->validate();
 
-        // Update location
         $validated['location'] = new Point(
-            $validated['location']['coordinates'][0], // Latitude
-            $validated['location']['coordinates'][1]  // Longitude
+            $validated['location']['coordinates'][0],
+            $validated['location']['coordinates'][1]
         );
 
-        // Update the material
         $material->update($validated);
 
-        // Sync tags if provided
         if ($request->has('tags')) {
             $material->tags()->sync($validated['tags']);
         }
