@@ -10,15 +10,14 @@ use Spatie\Translatable\HasTranslations;
 
 class Material extends Model
 {
-    use HasFactory, HasTranslations;
-    use HasSpatial;
-
+    use HasFactory, HasTranslations, HasSpatial;
 
     protected $fillable = [
         'language_id',
         'topic_id',
         'country_id',
         'poster',
+        'tags',
         'title',
         'author',
         'short_description',
@@ -34,13 +33,22 @@ class Material extends Model
         'author_url',
     ];
 
-
     protected $casts = [
         'location' => Point::class,
+        'title' => 'array',
+        'tags' => 'array',
+        'author' => 'array',
+        'short_description' => 'array',
+        'full_text' => 'array',
+        'source' => 'array',
     ];
 
-    public $translatable = ['title','author','short_description','tags','full_text','source',];
+    public $translatable = ['title', 'author', 'short_description', 'full_text', 'source'];
 
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'materials_to_tags');
+    }
 
     public function language()
     {
@@ -55,10 +63,5 @@ class Material extends Model
     public function country()
     {
         return $this->belongsTo(Country::class);
-    }
-
-    public function tags()
-    {
-        return $this->belongsToMany(Tag::class, 'materials_to_tags');
     }
 }
