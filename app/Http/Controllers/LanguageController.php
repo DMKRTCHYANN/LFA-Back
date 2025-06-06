@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Http\Controllers;
 
 use App\Models\Language;
@@ -51,26 +50,26 @@ class LanguageController extends Controller
 
     public function update(Request $request, $id)
     {
-            $language = Language::findOrFail($id);
+        $language = Language::findOrFail($id);
 
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'code' => 'required|string|max:10',
-                'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:10',
+            'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
 
-            $data = $request->only(['name', 'code']);
+        $data = $request->only(['name', 'code']);
 
-            if ($request->hasFile('image')) {
-                $data['image'] = $this->handleImageUpload($request, $language->image);
-            }
+        if ($request->hasFile('image')) {
+            $data['image'] = $this->handleImageUpload($request, $language->image);
+        }
 
-            $language->update($data);
+        $language->update($data);
 
-            return response()->json([
-                'error' => false,
-                'data' => $language
-            ]);
+        return response()->json([
+            'error' => false,
+            'data' => $language
+        ]);
 
     }
 

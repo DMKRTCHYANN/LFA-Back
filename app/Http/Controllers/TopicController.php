@@ -79,8 +79,7 @@ class TopicController extends Controller
     }
 
 
-
-    public function update(Request $request,$id)
+    public function update(Request $request, $id)
     {
 
         $rules = [
@@ -88,7 +87,7 @@ class TopicController extends Controller
             'name.*' => 'nullable|string|max:255',
         ];
 
-        $validator = Validator::make($request->all(),$rules);
+        $validator = Validator::make($request->all(), $rules);
 
         $validator->after(function ($validator) use ($request) {
             $names = $request->input('name', []);
@@ -105,12 +104,12 @@ class TopicController extends Controller
             }
         });
 
-        if ($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
                 'error' => true,
                 'message' => 'Validation failed',
                 'errors' => $validator->errors(),
-            ],422);
+            ], 422);
         }
 
         $topic = Topic::findOrFail($id);
@@ -123,7 +122,7 @@ class TopicController extends Controller
         return response()->json([
             'error' => false,
             'message' => 'Topic updated successfully!'
-        ],200);
+        ], 200);
     }
 
 

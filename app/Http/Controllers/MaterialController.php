@@ -34,9 +34,7 @@ class MaterialController extends Controller
         return response()->json($material, 200);
     }
 
-    /**
-     * @throws ValidationException
-     */
+
     public function store(Request $request)
     {
         $languageCodes = Language::pluck('code')->toArray();
