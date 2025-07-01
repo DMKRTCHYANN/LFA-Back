@@ -21,10 +21,12 @@ return new class extends Migration
             $table->json('title')->nullable();
             $table->json('author')->nullable();
             $table->json('short_description')->nullable();
+            $table->string('image')->nullable();
             $table->integer('start_year');
             $table->integer('end_year');
             $table->json('tags')->nullable();
             $table->geometry('location', subtype: 'point')->nullable();
+            $table->geometry('author_location', subtype: 'point')->nullable();
             $table->enum('medium', array_column(Medium::cases(), 'value'))->default(Medium::Paper->value);
             $table->json('full_text')->nullable();
             $table->text('book_url');

@@ -23,8 +23,10 @@ class Material extends Model
         'short_description',
         'start_year',
         'end_year',
+        'image',
         'medium',
         'full_text',
+        'author_location',
         'location',
         'book_url',
         'video',
@@ -35,6 +37,7 @@ class Material extends Model
 
     protected $casts = [
         'location' => Point::class,
+        'author_location' => Point::class,
         'title' => 'array',
         'tags' => 'array',
         'author' => 'array',

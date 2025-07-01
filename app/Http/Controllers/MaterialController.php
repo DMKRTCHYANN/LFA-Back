@@ -8,8 +8,6 @@ use App\Enums\Medium;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Enum;
-use Illuminate\Validation\ValidationException;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
 class MaterialController extends Controller
@@ -56,6 +54,7 @@ class MaterialController extends Controller
             'tags.*' => 'exists:tags,id',
             'book_url' => 'required|url',
             'video' => 'required|url',
+            'image' => 'required',
             'source_url' => 'required|url',
             'author_url' => 'required|url',
             'location' => 'required|array',
@@ -63,6 +62,11 @@ class MaterialController extends Controller
             'location.coordinates' => 'required|array|size:2',
             'location.coordinates.0' => 'required|numeric|between:-90,90',
             'location.coordinates.1' => 'required|numeric|between:-180,180',
+            'author_location' => 'required|array',
+            'author_location.type' => 'required|string|in:Point',
+            'author_location.coordinates' => 'required|array|size:2',
+            'author_location.coordinates.0' => 'required|numeric|between:-90,90',
+            'author_location.coordinates.1' => 'required|numeric|between:-180,180',
         ];
 
         foreach ($languageCodes as $code) {
@@ -106,6 +110,14 @@ class MaterialController extends Controller
             $validated['location']['coordinates'][1]
         );
 
+        $validated['author_location'] = new Point(
+            $validated['author_location']['coordinates'][0],
+            $validated['author_location']['coordinates'][1],
+        );
+
+        $validated['image'] = $request->hasFile('image') ? $this->handleImageUpload($request) : null;
+
+
         $material = Material::create($validated);
 
         if (!empty($tags)) {
@@ -121,15 +133,7 @@ class MaterialController extends Controller
     public function update(Request $request, $id)
     {
         $material = Material::findOrFail($id);
-        if (!$material) {
-            return response()->json([
-                'errors' => [
-                    'material' => [
-                        'Material not found'
-                    ]
-                ]
-            ], 404);
-        }
+
 
         $languageCodes = Language::pluck('code')->toArray();
 
@@ -150,6 +154,7 @@ class MaterialController extends Controller
             'tags.*' => 'exists:tags,id',
             'book_url' => 'required|url',
             'video' => 'required|url',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'source_url' => 'required|url',
             'author_url' => 'required|url',
             'location' => 'required|array',
@@ -157,6 +162,11 @@ class MaterialController extends Controller
             'location.coordinates' => 'required|array|size:2',
             'location.coordinates.0' => 'required|numeric|between:-180,180',
             'location.coordinates.1' => 'required|numeric|between:-90,90',
+            'author_location' => 'required|array',
+            'author_location.type' => 'required|string|in:Point',
+            'author_location.coordinates' => 'required|array|size:2',
+            'author_location.coordinates.0' => 'required|numeric|between:-90,90',
+            'author_location.coordinates.1' => 'required|numeric|between:-180,180',
         ];
 
         foreach ($languageCodes as $code) {
@@ -204,6 +214,15 @@ class MaterialController extends Controller
             $validated['location']['coordinates'][0]
         );
 
+        $validated['author_location'] = new Point(
+            $validated['author_location']['coordinates'][1],
+            $validated['author_location']['coordinates'][0],
+        );
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $this->handleImageUpload($request, $material->image);
+        }
+
         $material->update($validated);
 
         if ($request->has('tags')) {
@@ -231,4 +250,17 @@ class MaterialController extends Controller
 
         return response()->json(['message' => 'Material deleted'], 200);
     }
+
+
+    private function handleImageUpload(Request $request, $existingImage = null)
+    {
+        if ($request->hasFile('image')) {
+            if ($existingImage) {
+                Storage::disk('public')->delete($existingImage);
+            }
+            return $request->file('image')->store('images', 'public');
+        }
+        return $existingImage;
+    }
+
 }
